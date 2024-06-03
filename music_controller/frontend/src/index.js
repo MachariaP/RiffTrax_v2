@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import App from "./components/App";
 
 
