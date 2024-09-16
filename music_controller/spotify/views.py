@@ -4,13 +4,26 @@ from rest_framework.views import APIView
 from requests import Request, post
 from rest_framework import status
 from rest_framework.response import Response
-from .util import *
+from .util import update_or_create_user_tokens, is_spotify_authenticated, execute_spotify_api_request, pause_song, play_song, skip_song
 from api.models import Room
 from .models import Vote
 
 
 class AuthURL(APIView):
-    def get(self, request, fornat=None):
+    """
+    API view to generate the Spotify authorization URL.
+    """
+    def get(self, request, format=None):
+        """
+        Handle GET request to generate the Spotify authorization URL.
+
+        Args:
+            request (HttpRequest): The request object.
+            format (str, optional): The format of the response.
+
+        Returns:
+            Response: A response containing the authorization URL.
+        """
         scopes = 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
 
         url = Request('GET', 'https://accounts.spotify.com/authorize', params={
@@ -24,6 +37,16 @@ class AuthURL(APIView):
 
 
 def spotify_callback(request, format=None):
+    """
+    Handle the Spotify callback after user authorization.
+
+    Args:
+        request (HttpRequest): The request object.
+        format (str, optional): The format of the response.
+
+    Returns:
+        HttpResponseRedirect: A redirect to the frontend.
+    """
     code = request.GET.get('code')
     error = request.GET.get('error')
 
@@ -51,14 +74,39 @@ def spotify_callback(request, format=None):
 
 
 class IsAuthenticated(APIView):
+    """
+    API view to check if the user is authenticated with Spotify.
+    """
     def get(self, request, format=None):
-        is_authenticated = is_spotify_authenticated(
-            self.request.session.session_key)
+        """
+        Handle GET request to check if the user is authenticated with Spotify.
+
+        Args:
+            request (HttpRequest): The request object.
+            format (str, optional): The format of the response.
+
+        Returns:
+            Response: A response containing the authentication status.
+        """
+        is_authenticated = is_spotify_authenticated(self.request.session.session_key)
         return Response({'status': is_authenticated}, status=status.HTTP_200_OK)
 
 
 class CurrentSong(APIView):
+    """
+    API view to get the currently playing song in the room.
+    """
     def get(self, request, format=None):
+        """
+        Handle GET request to get the currently playing song in the room.
+
+        Args:
+            request (HttpRequest): The request object.
+            format (str, optional): The format of the response.
+
+        Returns:
+            Response: A response containing the current song information.
+        """
         room_code = self.request.session.get('room_code')
         room = Room.objects.filter(code=room_code)
         if room.exists():
@@ -105,6 +153,13 @@ class CurrentSong(APIView):
         return Response(song, status=status.HTTP_200_OK)
 
     def update_room_song(self, room, song_id):
+        """
+        Update the current song in the room.
+
+        Args:
+            room (Room): The room object.
+            song_id (str): The ID of the current song.
+        """
         current_song = room.current_song
 
         if current_song != song_id:
@@ -114,7 +169,20 @@ class CurrentSong(APIView):
 
 
 class PauseSong(APIView):
-    def put(self, response, format=None):
+    """
+    API view to pause the currently playing song.
+    """
+    def put(self, request, format=None):
+        """
+        Handle PUT request to pause the currently playing song.
+
+        Args:
+            request (HttpRequest): The request object.
+            format (str, optional): The format of the response.
+
+        Returns:
+            Response: A response indicating the result of the operation.
+        """
         room_code = self.request.session.get('room_code')
         room = Room.objects.filter(code=room_code)[0]
         if self.request.session.session_key == room.host or room.guest_can_pause:
@@ -125,7 +193,20 @@ class PauseSong(APIView):
 
 
 class PlaySong(APIView):
-    def put(self, response, format=None):
+    """
+    API view to play the currently paused song.
+    """
+    def put(self, request, format=None):
+        """
+        Handle PUT request to play the currently paused song.
+
+        Args:
+            request (HttpRequest): The request object.
+            format (str, optional): The format of the response.
+
+        Returns:
+            Response: A response indicating the result of the operation.
+        """
         room_code = self.request.session.get('room_code')
         room = Room.objects.filter(code=room_code)[0]
         if self.request.session.session_key == room.host or room.guest_can_pause:
@@ -136,7 +217,20 @@ class PlaySong(APIView):
 
 
 class SkipSong(APIView):
+    """
+    API view to skip the currently playing song.
+    """
     def post(self, request, format=None):
+        """
+        Handle POST request to skip the currently playing song.
+
+        Args:
+            request (HttpRequest): The request object.
+            format (str, optional): The format of the response.
+
+        Returns:
+            Response: A response indicating the result of the operation.
+        """
         room_code = self.request.session.get('room_code')
         room = Room.objects.filter(code=room_code)[0]
         votes = Vote.objects.filter(room=room, song_id=room.current_song)
@@ -150,4 +244,4 @@ class SkipSong(APIView):
                         room=room, song_id=room.current_song)
             vote.save()
 
-        return Response({}, status.HTTP_204_NO_CONTENT)
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
