@@ -1,12 +1,15 @@
-import React, { Component } from "react";
-import { render } from "react-dom";
-import HomePage from "./HomePage";
+import React, { Component } from 'react';
+import { render } from 'react-dom';
+import HomePage from './HomePage';
 
+/**
+ * App component serves as the main entry point for the application.
+ */
 export default class App extends Component {
-  constructor(props) {
-    super(props);
-  }
-
+  /**
+   * Renders the component.
+   * @returns {JSX.Element} The rendered component.
+   */
   render() {
     return (
       <div className="center">
@@ -16,5 +19,8 @@ export default class App extends Component {
   }
 }
 
-const appDiv = document.getElementById("app");
+// Get the DOM element to mount the React application
+const appDiv = document.getElementById('app');
+
+// Render the App component into the DOM element
 render(<App />, appDiv);
